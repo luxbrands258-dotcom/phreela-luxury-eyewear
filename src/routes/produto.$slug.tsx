@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronLeft, ShieldCheck, Star } from "lucide-react";
+import { Check, ChevronLeft, ShieldCheck, Star, X, Flame, Truck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import clientAmina from "@/assets/client-amina.jpg";
 import clientCelso from "@/assets/client-celso.jpg";
@@ -48,6 +48,29 @@ function ProductPage() {
   const [variant, setVariant] = useState("Preto");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [exitLeadOpen, setExitLeadOpen] = useState(false);
+  const [toastIndex, setToastIndex] = useState(0);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(2 * 60 * 60 + 15 * 60);
+  const socialProof = [
+    { name: "Amina M.", place: "Maputo (Polana Cimento)", product: "Perla - Black", image: products[0].image, time: "Há 2 min" },
+    { name: "Sérgio K.", place: "Matola", product: "The Saturn - Brown", image: products[2].image, time: "Há 8 min" },
+    { name: "Sheila A.", place: "Nampula", product: "Camila - Tan", image: products[1].image, time: "Há 15 min" },
+  ];
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const show = () => {
+      setToastIndex((i) => (i + 1) % socialProof.length);
+      setToastVisible(true);
+      timer = setTimeout(() => setToastVisible(false), 7000);
+    };
+    const initial = setTimeout(show, 5000);
+    const interval = setInterval(show, 25000);
+    return () => { clearTimeout(initial); clearTimeout(timer); clearInterval(interval); };
+  }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setSecondsLeft((s) => s > 0 ? s - 1 : 0), 1000);
+    return () => clearInterval(timer);
+  }, []);
   useEffect(() => {
     const onLeave = (event: MouseEvent) => {
       // Check storage on every event. The previous implementation captured
@@ -61,6 +84,8 @@ function ProductPage() {
     document.addEventListener("mouseleave", onLeave);
     return () => document.removeEventListener("mouseleave", onLeave);
   }, []);
+  const proof = socialProof[toastIndex];
+  const countdown = `${String(Math.floor(secondsLeft / 3600)).padStart(2, "0")}h ${String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, "0")}m`;
   const gallery = useMemo(() => [product.image, ...products.filter((p)=>p.slug !== product.slug).slice(0,2).map((p)=>p.image)], [product]);
   const [mainImage, setMainImage] = useState(product.image);
   const whatsapp = `https://wa.me/258870470801?text=${encodeURIComponent(`Olá, gostaria de encomendar o modelo ${product.name} no valor de ${formatPrice(product.price)}. Variação: ${variant}.`)}`;
@@ -70,5 +95,7 @@ function ProductPage() {
   </div>
   <section className="py-20 sm:py-28"><div className="text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Experiências reais</p><h2 className="mt-3 font-display text-4xl sm:text-5xl">O que dizem os nossos clientes</h2></div><div className="no-scrollbar -mx-4 mt-9 flex snap-x gap-4 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">{testimonials.map((t)=><article key={t.name} className="min-w-[82%] snap-center rounded-2xl bg-soft p-3 sm:min-w-0"><img src={t.image} alt={`Cliente ${t.name} a usar óculos SOLIS`} loading="lazy" width={800} height={800} className="aspect-square w-full rounded-xl object-cover"/><div className="p-3"><div className="flex gap-0.5 text-accent" aria-label="5 estrelas">{Array.from({length:5}).map((_,i)=><Star key={i} className="h-3.5 w-3.5 fill-current"/>)}</div><p className="mt-4 text-sm leading-6">“{t.quote}”</p><p className="mt-4 text-xs font-semibold">{t.name}</p></div></article>)}</div></section>
   <section><div className="mb-8 flex items-end justify-between"><h2 className="font-display text-4xl">Também poderá gostar</h2><Link to="/loja" className="text-xs font-semibold">Ver todos</Link></div><div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">{products.filter((p)=>p.slug!==product.slug).slice(0,3).map((p)=><ProductCard key={p.slug} product={p}/>)}</div></section>
-  <ExitLeadDialog open={exitLeadOpen} onOpenChange={setExitLeadOpen}/><CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} product={product} variant={variant}/></main></StoreShell>;
+  {toastVisible && <div className="fixed bottom-5 left-5 z-50 w-[min(360px,calc(100vw-2.5rem))] animate-in slide-in-from-bottom-3 rounded-2xl border border-border bg-white p-3 shadow-lg">
+  <div className="flex items-start gap-3"><img src={proof.image} alt="" className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex items-center gap-1 text-[11px] font-semibold"><span>{proof.name} de {proof.place}</span><Check className="h-3.5 w-3.5 rounded-full bg-foreground p-0.5 text-background" /></div><p className="mt-0.5 text-xs text-muted-foreground">acabou de encomendar <strong className="text-foreground">{proof.product}</strong> • {proof.time}</p></div><button type="button" aria-label="Fechar notificação" onClick={()=>setToastVisible(false)} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button></div>
+</div>}<ExitLeadDialog open={exitLeadOpen} onOpenChange={setExitLeadOpen}/><CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} product={product} variant={variant}/></main></StoreShell>;
 }
