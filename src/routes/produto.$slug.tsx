@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, ChevronLeft, ShieldCheck, Star } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import clientAmina from "@/assets/client-amina.jpg";
 import clientCelso from "@/assets/client-celso.jpg";
 import clientVania from "@/assets/client-vania.jpg";
@@ -27,10 +28,33 @@ const testimonials = [
   { image: clientVania, quote: "Ainda mais bonitos ao vivo. Chegaram bem embalados e com um estojo lindo.", name: "Vânia C. — Beira" },
 ];
 
+function ExitLeadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="max-w-md rounded-2xl p-6">
+      {submitted ? <div className="py-8 text-center"><Check className="mx-auto h-10 w-10"/><h2 className="mt-4 font-display text-3xl">Pedido guardado</h2><p className="mt-2 text-sm text-muted-foreground">Obrigado! A nossa equipa poderá entrar em contacto para confirmar a sua intenção de compra.</p></div> : <><DialogHeader><DialogTitle className="font-display text-3xl">Ainda está a pensar?</DialogTitle><DialogDescription>Deixe os seus contactos e não perca a oportunidade de receber ajuda com a sua encomenda.</DialogDescription></DialogHeader><div className="grid gap-4 pt-4"><label><span className="mb-1.5 block text-xs font-semibold">Nome</span><input className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={name} onChange={e=>setName(e.target.value)} placeholder="Seu nome" /></label><label><span className="mb-1.5 block text-xs font-semibold">WhatsApp</span><input className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+258 ..." type="tel" /></label><Button disabled={!name.trim() || !phone.trim()} onClick={()=>setSubmitted(true)} className="h-12">Quero ser contactado</Button><p className="text-center text-[10px] text-muted-foreground">Estado: Lead Abandono • Os dados ainda não são gravados na base de dados.</p></div></>}
+    </DialogContent>
+  </Dialog>;
+}
+
 function ProductPage() {
   const product = Route.useLoaderData();
   const [variant, setVariant] = useState("Preto");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [exitLeadOpen, setExitLeadOpen] = useState(false);
+  useEffect(() => {
+    const seen = sessionStorage.getItem("solis_exit_lead_seen");
+    const onLeave = (event: MouseEvent) => {
+      if (event.clientY <= 8 && !seen) {
+        setExitLeadOpen(true);
+        sessionStorage.setItem("solis_exit_lead_seen", "1");
+      }
+    };
+    document.addEventListener("mouseleave", onLeave);
+    return () => document.removeEventListener("mouseleave", onLeave);
+  }, []);
   const gallery = useMemo(() => [product.image, ...products.filter((p)=>p.slug !== product.slug).slice(0,2).map((p)=>p.image)], [product]);
   const [mainImage, setMainImage] = useState(product.image);
   const whatsapp = `https://wa.me/258870470801?text=${encodeURIComponent(`Olá, gostaria de encomendar o modelo ${product.name} no valor de ${formatPrice(product.price)}. Variação: ${variant}.`)}`;
@@ -40,5 +64,5 @@ function ProductPage() {
   </div>
   <section className="py-20 sm:py-28"><div className="text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Experiências reais</p><h2 className="mt-3 font-display text-4xl sm:text-5xl">O que dizem os nossos clientes</h2></div><div className="no-scrollbar -mx-4 mt-9 flex snap-x gap-4 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">{testimonials.map((t)=><article key={t.name} className="min-w-[82%] snap-center rounded-2xl bg-soft p-3 sm:min-w-0"><img src={t.image} alt={`Cliente ${t.name} a usar óculos SOLIS`} loading="lazy" width={800} height={800} className="aspect-square w-full rounded-xl object-cover"/><div className="p-3"><div className="flex gap-0.5 text-accent" aria-label="5 estrelas">{Array.from({length:5}).map((_,i)=><Star key={i} className="h-3.5 w-3.5 fill-current"/>)}</div><p className="mt-4 text-sm leading-6">“{t.quote}”</p><p className="mt-4 text-xs font-semibold">{t.name}</p></div></article>)}</div></section>
   <section><div className="mb-8 flex items-end justify-between"><h2 className="font-display text-4xl">Também poderá gostar</h2><Link to="/loja" className="text-xs font-semibold">Ver todos</Link></div><div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">{products.filter((p)=>p.slug!==product.slug).slice(0,3).map((p)=><ProductCard key={p.slug} product={p}/>)}</div></section>
-  <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} product={product} variant={variant}/></main></StoreShell>;
+  <ExitLeadDialog open={exitLeadOpen} onOpenChange={setExitLeadOpen}/><CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} product={product} variant={variant}/></main></StoreShell>;
 }
