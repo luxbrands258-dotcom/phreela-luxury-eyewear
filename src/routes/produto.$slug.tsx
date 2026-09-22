@@ -29,10 +29,14 @@ const testimonials = [
 ];
 
 function ExitLeadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) sessionStorage.setItem("solis_exit_lead_seen", "1");
+    onOpenChange(nextOpen);
+  };
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  return <Dialog open={open} onOpenChange={onOpenChange}>
+  return <Dialog open={open} onOpenChange={handleOpenChange}>
     <DialogContent className="max-w-md rounded-2xl p-6">
       {submitted ? <div className="py-8 text-center"><Check className="mx-auto h-10 w-10"/><h2 className="mt-4 font-display text-3xl">Pedido guardado</h2><p className="mt-2 text-sm text-muted-foreground">Obrigado! A nossa equipa poderá entrar em contacto para confirmar a sua intenção de compra.</p></div> : <><DialogHeader><DialogTitle className="font-display text-3xl">Ainda está a pensar?</DialogTitle><DialogDescription>Deixe os seus contactos e não perca a oportunidade de receber ajuda com a sua encomenda.</DialogDescription></DialogHeader><div className="grid gap-4 pt-4"><label><span className="mb-1.5 block text-xs font-semibold">Nome</span><input className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={name} onChange={e=>setName(e.target.value)} placeholder="Seu nome" /></label><label><span className="mb-1.5 block text-xs font-semibold">WhatsApp</span><input className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+258 ..." type="tel" /></label><Button disabled={!name.trim() || !phone.trim()} onClick={()=>setSubmitted(true)} className="h-12">Quero ser contactado</Button><p className="text-center text-[10px] text-muted-foreground">Estado: Lead Abandono • Os dados ainda não são gravados na base de dados.</p></div></>}
     </DialogContent>
@@ -45,11 +49,13 @@ function ProductPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [exitLeadOpen, setExitLeadOpen] = useState(false);
   useEffect(() => {
-    const seen = sessionStorage.getItem("solis_exit_lead_seen");
     const onLeave = (event: MouseEvent) => {
+      // Check storage on every event. The previous implementation captured
+      // the initial value in the closure, causing the modal to reopen.
+      const seen = sessionStorage.getItem("solis_exit_lead_seen");
       if (event.clientY <= 8 && !seen) {
-        setExitLeadOpen(true);
         sessionStorage.setItem("solis_exit_lead_seen", "1");
+        setExitLeadOpen(true);
       }
     };
     document.addEventListener("mouseleave", onLeave);
